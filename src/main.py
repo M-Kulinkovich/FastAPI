@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Depends
 from fastapi_users import FastAPIUsers
 
-from auth.auth import auth_backend
-from auth.database import User
+from auth.base_config import auth_backend
+from database import User
 from auth.manager import get_user_manager
 from auth.schemas import UserRead, UserCreate
 
@@ -37,4 +37,4 @@ def protected_route(user: User = Depends(current_user)):
 
 @app.get("/unprotected-route")
 def protected_route(user: User = Depends(current_user)):
-    return f'Hello, anonym'
+    return f'Hello, anonymus'
