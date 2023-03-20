@@ -1,59 +1,40 @@
-from enum import Enum
-from typing import List
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, Depends
+from fastapi_users import FastAPIUsers
+
+from auth.auth import auth_backend
+from auth.database import User
+from auth.manager import get_user_manager
+from auth.schemas import UserRead, UserCreate
 
 app = FastAPI(
     title='trading app'
 )
 
-fake_users = [
-    {'id': 1, 'role': 'admin', 'name': 'Max'},
-    {'id': 2, 'role': 'investor', 'name': 'John'},
-    {'id': 3, 'role': 'trader', 'name': 'Dima'},
-    {'id': 4, 'role': 'trader', 'name': 'Ignat', 'degree': [
-        {'id': 1, 'type_degree': 'expert'}
-    ]},
-]
+fastapi_users = FastAPIUsers[User, int](
+    get_user_manager,
+    [auth_backend],
+)
+
+app.include_router(
+    fastapi_users.get_auth_router(auth_backend),
+    prefix="/auth/jwt",
+    tags=["auth"],
+)
+
+app.include_router(
+    fastapi_users.get_register_router(UserRead, UserCreate),
+    prefix="/auth",
+    tags=["auth"],
+)
+
+current_user = fastapi_users.current_user()
 
 
-class DegreeType(Enum):
-    newbie = 'newbie'
-    expert = 'expert'
+@app.get("/protected-route")
+def protected_route(user: User = Depends(current_user)):
+    return f'Hello, {user.username}'
 
 
-class Degree(BaseModel):
-    id: str
-    type_degree: DegreeType
-
-
-class User(BaseModel):
-    id: int
-    role: str
-    name: str
-    degree: List[Degree] = []
-
-
-@app.get('/users/{user_id}', response_model=List[User])
-def get_user(user_id: int):
-    return [user for user in fake_users if user.get('id') == user_id]
-
-
-fake_trades = [
-    {'id': 1, 'user_id': 1, 'currency': 'ETH', 'price': 1500},
-    {'id': 2, 'user_id': 2, 'currency': 'BTC', 'price': 25000},
-    {'id': 3, 'user_id': 3, 'currency': 'BNB', 'price': 400},
-]
-
-
-class Trade(BaseModel):
-    id: int
-    user_id: int
-    currency: str
-    price: float = Field(ge=0)
-
-
-@app.post('/trades')
-def add_trades(trades: List[Trade]):
-    fake_trades.extend(trades)
-    return{'status': 200, 'data': fake_trades}
+@app.get("/unprotected-route")
+def protected_route(user: User = Depends(current_user)):
+    return f'Hello, anonym'
