@@ -20,8 +20,8 @@ async def get_operations(operations_type: str, session: AsyncSession = Depends(g
 
 
 @router.post('/')
-async def get_operations(new_operations: OperationCreate, session: AsyncSession = Depends(get_async_session)):
+async def add_operations(new_operations: OperationCreate, session: AsyncSession = Depends(get_async_session)):
     stmt = insert(operation).values(**new_operations.dict())
     await session.execute(stmt)
     await session.commit()
-    return {'status': 'Sucsess'}
+    return {'status': 'Success'}
