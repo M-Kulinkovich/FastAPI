@@ -1,7 +1,6 @@
-import traceback
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, insert
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_async_session
@@ -19,16 +18,18 @@ async def get_operations(operation_type: str, session: AsyncSession = Depends(ge
     try:
         query = select(operation).where(operation.c.type == operation_type)
         result = await session.execute(query)
+        rows = result.fetchall()
+        data = [dict(zip(result.keys(), row)) for row in rows]
         return {
-            "status": "success",
-            "data": result.all(),
-            "details": None
+            'status': 'success',
+            'data': data,
+            'details': None
         }
     except Exception:
         raise HTTPException(status_code=500, detail={
-            "status": "error",
-            "data": None,
-            "details": None
+            'status': 'error',
+            'data': None,
+            'details': None
         })
 
 
